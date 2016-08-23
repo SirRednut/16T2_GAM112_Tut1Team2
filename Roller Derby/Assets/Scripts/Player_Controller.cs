@@ -13,8 +13,10 @@ public class Player_Controller : MonoBehaviour {
     public GameObject[] wheels;
     public Vector3 chassisPos = new Vector3();
     public float angle;
+    public float tiltSpeed;
     float moveAmount;
     float prevPos = 0;
+    private Rigidbody rb;
 
     /*
     Wheels[0]: Left Back
@@ -25,13 +27,15 @@ public class Player_Controller : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
+        rb = GetComponent<Rigidbody>();
         prevPos = transform.position.x;
     }
 
     // Update is called once per frame
     void Update() {
         moveAmount = Mathf.Round(transform.position.x * 100) - Mathf.Round(prevPos * 100);
-        Debug.Log (moveAmount);
+        //GameController.Instance.spedometer.text = moveAmount + "Km/s";
+        //Debug.Log (moveAmount);
         moveSpeed += Speed.value * 100;
         moveSpeed = Mathf.Clamp(moveSpeed, minSpeed, maxSpeed);
 
@@ -50,6 +54,14 @@ public class Player_Controller : MonoBehaviour {
             }
         }
         prevPos = transform.position.x;
+
+        // Rotation mechanics
+        if(Input.GetAxis("Mouse ScrollWheel") != 0)
+        {
+            float rotationDelta = Input.GetAxis("Mouse ScrollWheel") * tiltSpeed;
+
+            rb.AddTorque(new Vector3(0, 0, rotationDelta), ForceMode.Acceleration);
+        }
     }
 
 }
