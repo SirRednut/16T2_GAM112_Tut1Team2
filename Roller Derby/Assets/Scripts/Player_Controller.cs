@@ -4,19 +4,23 @@ using System.Collections;
 
 public class Player_Controller : MonoBehaviour {
 
-    public float moveSpeed;
-    float maxSpeed = 10000;
-    float minSpeed = -250;
-    public float accSpeed;
     public Slider Speed;
+    public Terrain terrain;
     public GameObject chassis;
     public GameObject[] wheels;
+
+    public float moveSpeed;
+    public float accSpeed;
     public Vector3 chassisPos = new Vector3();
     public float angle;
-    public float tiltSpeed;
+
     float moveAmount;
-    float prevPos = 0;
-    private Rigidbody rb;
+    float prevPos = 0.0f;
+    float maxSpeed = 10000.0f;
+    float minSpeed = -250.0f;
+    float SpeedValue = 0.0f;
+    int WheelsOnGround = 0;
+    public bool onGround = true;
 
     /*
     Wheels[0]: Left Back
@@ -27,41 +31,80 @@ public class Player_Controller : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
-        rb = GetComponent<Rigidbody>();
         prevPos = transform.position.x;
     }
 
     // Update is called once per frame
     void Update() {
+        // Movement
+
+        // Find movement amount to get accurate movement direction
         moveAmount = Mathf.Round(transform.position.x * 100) - Mathf.Round(prevPos * 100);
-        //GameController.Instance.spedometer.text = moveAmount + "Km/s";
-        //Debug.Log (moveAmount);
         moveSpeed += Speed.value * 100;
         moveSpeed = Mathf.Clamp(moveSpeed, minSpeed, maxSpeed);
-
+        //WheelsOnGround = 0;
         foreach (GameObject wheel in wheels) {
-            if ((moveAmount > 0 && Speed.value < 0) || (moveAmount < 0 && Speed.value > 0)) {
+            if ((moveAmount > 0 && Speed.value < 0) || (moveAmount < 0 && Speed.value > 0)) 
+            {
                 wheel.GetComponent<WheelCollider>().brakeTorque = maxSpeed * 10;
                 moveSpeed = 0;
                 wheel.GetComponent<WheelCollider>().motorTorque = moveSpeed;
             }
             else {
                 wheel.GetComponent<WheelCollider>().motorTorque = moveSpeed;
-                //Debug.Log("MoveSpeed: " + moveSpeed + " BrakeTorque: " + wheel.GetComponent<WheelCollider>().brakeTorque);
-                if (wheel.GetComponent<WheelCollider>().brakeTorque > 0) {
+                if (wheel.GetComponent<WheelCollider>().brakeTorque > 0) 
+                {
                     wheel.GetComponent<WheelCollider>().brakeTorque -= maxSpeed;
                 }
             }
+
+
+
         }
+
+        // Detect whether player is on ground
+        if (wheels[0].GetComponent<WheelCollider>().isGrounded || wheels[1].GetComponent<WheelCollider>().isGrounded || wheels[2].GetComponent<WheelCollider>().isGrounded || wheels[3].GetComponent<WheelCollider>().isGrounded) 
+        {
+            onGround = true;
+        }
+        else 
+        {
+            onGround = false;
+        }
+
         prevPos = transform.position.x;
 
-        // Rotation mechanics
-        if(Input.GetAxis("Mouse ScrollWheel") != 0)
+        // Off Ground Tilt
+        if (!onGround && Speed.minValue != -1) 
         {
-            float rotationDelta = Input.GetAxis("Mouse ScrollWheel") * tiltSpeed;
-
-            rb.AddTorque(new Vector3(0, 0, rotationDelta), ForceMode.Acceleration);
+            Speed.minValue = -1;
+            SpeedValue = Speed.value;
+            Speed.value = 0;
         }
+        else if (Speed.minValue == -1 && onGround) 
+        {
+            Speed.minValue = -0.5f;
+            Speed.value = SpeedValue;
+        }
+
+        if (!onGround) 
+        {
+            transform.Rotate(Vector3.right * Speed.value);
+            /*
+            float xRotation = transform.rotation.eulerAngles.x;
+
+            if (transform.rotation.eulerAngles.x >= 180) {
+                xRotation = Mathf.Clamp(xRotation, 270f, 365f);
+            }
+            else 
+            {
+                xRotation = Mathf.Clamp(xRotation, -0.5f, 90.0f);
+            }
+            transform.rotation = Quaternion.Euler(xRotation, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+            Debug.Log(xRotation);
+            */
+        }
+
     }
 
 }
