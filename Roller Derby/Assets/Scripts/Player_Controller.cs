@@ -4,23 +4,29 @@ using System.Collections;
 
 public class Player_Controller : MonoBehaviour {
 
+    public float moveSpeed;
+    float maxSpeed = 10000;
+    float minSpeed = -250;
+    public float accSpeed;
     public Slider Speed;
-    public Terrain terrain;
     public GameObject chassis;
     public GameObject[] wheels;
-
-    public float moveSpeed;
-    public float accSpeed;
     public Vector3 chassisPos = new Vector3();
     public float angle;
-
+    public float tiltSpeed;
     float moveAmount;
-    float prevPos = 0.0f;
-    float maxSpeed = 10000.0f;
-    float minSpeed = -250.0f;
-    float SpeedValue = 0.0f;
-    int WheelsOnGround = 0;
-    public bool onGround = true;
+    float prevPos = 0;
+    private Rigidbody rb;
+
+    // Manage gearchange SFX
+    private AudioSource engineSFX;
+    public Animator engineAnimator;
+    public float speedFactor;
+    public int currentGear = 0;
+    public float gear1 = 0.25f;
+    public float gear2 = 0.5f;
+    public float gear3 = 0.75f;
+    public float gear4 = 1f;
 
     /*
     Wheels[0]: Left Back
@@ -31,8 +37,16 @@ public class Player_Controller : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
+        rb = GetComponent<Rigidbody>();
         prevPos = transform.position.x;
-    }
+        
+        // Set up the gear values
+
+        gear1 = 0.25f * maxSpeed;
+        gear2 = 0.5f * maxSpeed;
+        gear3 = 0.75f * maxSpeed;
+        gear4 = 1f * maxSpeed;
+}
 
     // Update is called once per frame
     void Update() {
@@ -57,54 +71,61 @@ public class Player_Controller : MonoBehaviour {
                     wheel.GetComponent<WheelCollider>().brakeTorque -= maxSpeed;
                 }
             }
-
-
-
         }
-
-        // Detect whether player is on ground
-        if (wheels[0].GetComponent<WheelCollider>().isGrounded || wheels[1].GetComponent<WheelCollider>().isGrounded || wheels[2].GetComponent<WheelCollider>().isGrounded || wheels[3].GetComponent<WheelCollider>().isGrounded) 
-        {
-            onGround = true;
-        }
-        else 
-        {
-            onGround = false;
-        }
-
         prevPos = transform.position.x;
 
-        // Off Ground Tilt
-        if (!onGround && Speed.minValue != -1) 
+        // Rotation mechanics
+        if(Input.GetAxis("Mouse ScrollWheel") != 0)
         {
-            Speed.minValue = -1;
-            SpeedValue = Speed.value;
-            Speed.value = 0;
-        }
-        else if (Speed.minValue == -1 && onGround) 
-        {
-            Speed.minValue = -0.5f;
-            Speed.value = SpeedValue;
+            float rotationDelta = Input.GetAxis("Mouse ScrollWheel") * tiltSpeed;
+
+            rb.AddTorque(new Vector3(0, 0, rotationDelta), ForceMode.Acceleration);
         }
 
-        if (!onGround) 
-        {
-            transform.Rotate(Vector3.right * Speed.value);
-            /*
-            float xRotation = transform.rotation.eulerAngles.x;
-
-            if (transform.rotation.eulerAngles.x >= 180) {
-                xRotation = Mathf.Clamp(xRotation, 270f, 365f);
-            }
-            else 
-            {
-                xRotation = Mathf.Clamp(xRotation, -0.5f, 90.0f);
-            }
-            transform.rotation = Quaternion.Euler(xRotation, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
-            Debug.Log(xRotation);
-            */
-        }
-
+        ManageAudio();
     }
 
+    void ManageAudio()
+    {
+        // Get the current speedFactor of the engine
+        speedFactor = moveSpeed / maxSpeed;
+        if(speedFactor > 0 && speedFactor < gear1)
+        {
+            if(currentGear != 1)
+            {
+                ChangeGear();
+                currentGear = 1;
+            }  
+        }
+        else if (speedFactor > gear1 && speedFactor < gear2)
+        {
+            if (currentGear != 2)
+            {
+                ChangeGear();
+                currentGear = 2;
+            }
+        }
+        else if (speedFactor > gear2 && speedFactor < gear3)
+        {
+            if (currentGear != 3)
+            {
+                ChangeGear();
+                currentGear = 3;
+            }
+        }
+        else if (speedFactor > gear3 && speedFactor < gear4)
+        {
+            if (currentGear != 4)
+            {
+                ChangeGear();
+                currentGear = 4;
+            }
+        }
+    }
+
+    void ChangeGear()
+    {
+        engineAnimator.Play("gearchange");
+        //change gear
+    }
 }
